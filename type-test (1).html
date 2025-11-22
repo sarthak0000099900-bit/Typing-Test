@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypeSpeed - Advanced Typing Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="type-test.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>
+                    <span class="material-icons" style="font-size: 2.5rem;">keyboard</span>
+                    TypeSpeed
+                </h1>
+                <p>Test your typing speed and accuracy</p>
+            </div>
+
+            <div class="content">
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-label">WPM</div>
+                        <div class="stat-value" id="wpm">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Accuracy</div>
+                        <div class="stat-value" id="accuracy">100%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Errors</div>
+                        <div class="stat-value" id="errors">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Time</div>
+                        <div class="stat-value" id="time">0s</div>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn">
+                        <span class="material-icons">play_arrow</span>
+                        Start Test
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn">
+                        <span class="material-icons">refresh</span>
+                        Reset
+                    </button>
+                    <div class="difficulty-selector">
+                        <button class="difficulty-btn active" data-level="easy">Easy</button>
+                        <button class="difficulty-btn" data-level="medium">Medium</button>
+                        <button class="difficulty-btn" data-level="hard">Hard</button>
+                    </div>
+                </div>
+
+                <div class="text-display" id="textDisplay">
+                    Click "Start Test" to begin typing...
+                </div>
+
+                <input type="text" class="input-area" id="inputArea" placeholder="Start typing here..." disabled>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-modal" id="resultsModal">
+        <div class="results-content">
+            <div class="results-header">
+                <h2>🎉 Test Complete!</h2>
+            </div>
+            <div class="results-stats">
+                <div class="result-item">
+                    <span class="result-label">Words Per Minute</span>
+                    <span class="result-value" id="finalWpm">0</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Accuracy</span>
+                    <span class="result-value" id="finalAccuracy">0%</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Total Time</span>
+                    <span class="result-value" id="finalTime">0s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Characters</span>
+                    <span class="result-value" id="finalChars">0</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Errors</span>
+                    <span class="result-value" id="finalErrors">0</span>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="tryAgainBtn" style="width: 100%; justify-content: center;">
+                <span class="material-icons">replay</span>
+                Try Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const textSamples = {
+            easy: [
+                "The quick brown fox jumps over the lazy dog. This is a simple test to check your typing speed.",
+                "A journey of a thousand miles begins with a single step. Practice makes perfect in every skill.",
+                "The sun shines bright in the clear blue sky. Birds sing sweetly in the morning light.",
+                "Learning to type fast takes time and practice. Keep working hard and you will improve.",
+                "Every expert was once a beginner. Never give up on learning new things each day."
+            ],
+            medium: [
+                "Technology has revolutionized the way we communicate and interact with the world around us. From smartphones to artificial intelligence, innovation continues to reshape our daily lives.",
+                "The ability to type efficiently is an essential skill in the modern workplace. Mastering this skill can significantly improve your productivity and career prospects.",
+                "Regular practice and dedication are key to developing any new skill. By setting clear goals and maintaining consistency, you can achieve remarkable progress over time.",
+                "Understanding complex concepts requires patience and a willingness to explore beyond surface-level knowledge. Curiosity drives innovation and personal growth.",
+                "Effective communication involves not just speaking clearly, but also listening actively and responding thoughtfully to others' perspectives and ideas."
+            ],
+            hard: [
+                "Quantum mechanics fundamentally challenges our classical understanding of physics, introducing concepts like superposition and entanglement that defy intuitive comprehension. The probabilistic nature of quantum phenomena necessitates a paradigm shift in how we conceptualize reality at the subatomic level.",
+                "Cryptographic algorithms employ sophisticated mathematical principles to ensure data security and privacy in digital communications. Public-key infrastructure, hash functions, and encryption protocols form the backbone of modern cybersecurity frameworks.",
+                "The implementation of machine learning algorithms requires careful consideration of hyperparameters, feature engineering, and model validation techniques. Overfitting, underfitting, and the bias-variance tradeoff are critical concepts that practitioners must understand thoroughly.",
+                "Philosophical discourse concerning epistemology examines the fundamental nature, scope, and limitations of human knowledge. Rationalism, empiricism, and skepticism represent distinct approaches to understanding how we acquire and justify beliefs about the world.",
+                "Biochemical pathways within cellular metabolism demonstrate remarkable complexity, involving intricate regulatory mechanisms, feedback loops, and enzymatic cascades that maintain homeostasis and enable adaptation to environmental changes."
+            ]
+        };
+
+        let currentText = '';
+        let userInput = '';
+        let startTime = null;
+        let timerInterval = null;
+        let currentDifficulty = 'easy';
+        let totalCharacters = 0;
+        let correctCharacters = 0;
+        let incorrectCharacters = 0;
+        let isTestActive = false;
+
+        const elements = {
+            textDisplay: document.getElementById('textDisplay'),
+            inputArea: document.getElementById('inputArea'),
+            startBtn: document.getElementById('startBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            wpm: document.getElementById('wpm'),
+            accuracy: document.getElementById('accuracy'),
+            errors: document.getElementById('errors'),
+            time: document.getElementById('time'),
+            progressFill: document.getElementById('progressFill'),
+            resultsModal: document.getElementById('resultsModal'),
+            finalWpm: document.getElementById('finalWpm'),
+            finalAccuracy: document.getElementById('finalAccuracy'),
+            finalTime: document.getElementById('finalTime'),
+            finalChars: document.getElementById('finalChars'),
+            finalErrors: document.getElementById('finalErrors'),
+            tryAgainBtn: document.getElementById('tryAgainBtn')
+        };
+
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isTestActive) return;
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDifficulty = btn.dataset.level;
+            });
+        });
+
+        elements.startBtn.addEventListener('click', startTest);
+        elements.resetBtn.addEventListener('click', resetTest);
+        elements.tryAgainBtn.addEventListener('click', () => {
+            elements.resultsModal.classList.remove('show');
+            resetTest();
+        });
+
+        elements.inputArea.addEventListener('input', handleInput);
+
+        function startTest() {
+            resetTest();
+            isTestActive = true;
+            currentText = textSamples[currentDifficulty][Math.floor(Math.random() * textSamples[currentDifficulty].length)];
+            displayText();
+            elements.inputArea.disabled = false;
+            elements.inputArea.focus();
+            elements.textDisplay.classList.add('active');
+            elements.startBtn.disabled = true;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 100);
+        }
+
+        function resetTest() {
+            isTestActive = false;
+            clearInterval(timerInterval);
+            userInput = '';
+            currentText = '';
+            startTime = null;
+            totalCharacters = 0;
+            correctCharacters = 0;
+            incorrectCharacters = 0;
+            elements.inputArea.value = '';
+            elements.inputArea.disabled = true;
+            elements.textDisplay.classList.remove('active');
+            elements.textDisplay.innerHTML = 'Click "Start Test" to begin typing...';
+            elements.startBtn.disabled = false;
+            updateStats();
+            elements.progressFill.style.width = '0%';
+        }
+
+        function handleInput(e) {
+            if (!isTestActive) return;
+
+            userInput = e.target.value;
+            displayText();
+            calculateStats();
+            updateStats();
+
+            if (userInput.length === currentText.length) {
+                finishTest();
+            }
+        }
+
+        function displayText() {
+            let html = '';
+            for (let i = 0; i < currentText.length; i++) {
+                let className = '';
+                
+                if (i < userInput.length) {
+                    if (userInput[i] === currentText[i]) {
+                        className = 'correct';
+                    } else {
+                        className = 'incorrect';
+                    }
+                } else if (i === userInput.length) {
+                    className = 'current';
+                }
+                
+                html += `<span class="char ${className}">${currentText[i]}</span>`;
+            }
+            elements.textDisplay.innerHTML = html;
+
+            const progress = (userInput.length / currentText.length) * 100;
+            elements.progressFill.style.width = progress + '%';
+        }
+
+        function calculateStats() {
+            correctCharacters = 0;
+            incorrectCharacters = 0;
+
+            for (let i = 0; i < userInput.length; i++) {
+                if (userInput[i] === currentText[i]) {
+                    correctCharacters++;
+                } else {
+                    incorrectCharacters++;
+                }
+            }
+            totalCharacters = userInput.length;
+        }
+
+        function updateStats() {
+            const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
+            const minutes = elapsed / 60;
+            
+            const wordsTyped = correctCharacters / 5;
+            const wpm = minutes > 0 ? Math.round(wordsTyped / minutes) : 0;
+            
+            const accuracy = totalCharacters > 0 
+                ? Math.round((correctCharacters / totalCharacters) * 100) 
+                : 100;
+
+            elements.wpm.textContent = wpm;
+            elements.accuracy.textContent = accuracy + '%';
+            elements.errors.textContent = incorrectCharacters;
+            elements.time.textContent = Math.round(elapsed) + 's';
+        }
+
+        function updateTimer() {
+            if (!startTime) return;
+            const elapsed = (Date.now() - startTime) / 1000;
+            elements.time.textContent = Math.round(elapsed) + 's';
+        }
+
+        function finishTest() {
+            isTestActive = false;
+            clearInterval(timerInterval);
+            elements.inputArea.disabled = true;
+            elements.textDisplay.classList.remove('active');
+
+            const elapsed = (Date.now() - startTime) / 1000;
+            const minutes = elapsed / 60;
+            const wordsTyped = correctCharacters / 5;
+            const wpm = Math.round(wordsTyped / minutes);
+            const accuracy = Math.round((correctCharacters / totalCharacters) * 100);
+
+            elements.finalWpm.textContent = wpm;
+            elements.finalAccuracy.textContent = accuracy + '%';
+            elements.finalTime.textContent = Math.round(elapsed) + 's';
+            elements.finalChars.textContent = totalCharacters;
+            elements.finalErrors.textContent = incorrectCharacters;
+
+            elements.resultsModal.classList.add('show');
+        }
+
+        elements.resultsModal.addEventListener('click', (e) => {
+            if (e.target === elements.resultsModal) {
+                elements.resultsModal.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
